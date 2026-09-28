@@ -188,48 +188,40 @@ colnames(clinical_transposed) <- clinical_transposed[1,]
 
 clinical_transposed <- clinical_transposed[-1,]
 
-# Select necessary variables
-clinical_focused_for_death <- clinical_transposed[, c(3, 4, 9, 46, 54, 114)]
+# Select survival variables by name
+clinical_focused_for_death <- clinical_transposed[, c(
+  "days_to_death", "days_to_last_followup", "hpv_status",
+  "tumor_tissue_site", "vital_status"
+)]
 
 # Filter data
 clinical_focused_filtered_for_death <- clinical_focused_for_death %>%
   filter(hpv_status != "indeterminate", tumor_tissue_site == "head and neck")
 
-# Convert days_to_death to numeric
+# Use death time for deceased patients and last follow-up for living patients
 clinical_focused_filtered_for_death$days_to_death <- as.numeric(clinical_focused_filtered_for_death$days_to_death)
-
-# Define 5-year survival (1825 days)
-five_years <- 1825
-
-# Calculate 5-year survival status
-clinical_focused_filtered_for_death$survived_5_years <- ifelse(clinical_focused_filtered_for_death$vital_status == "alive" | clinical_focused_filtered_for_death$days_to_death >= five_years, TRUE, FALSE)
-
-# Calculate 5-year survival rate for HPV positive and negative groups
-hpv_positive_5yr_survival_rate <- mean(clinical_focused_filtered_for_death$survived_5_years[clinical_focused_filtered_for_death$hpv_status == "positive"], na.rm = TRUE)
-hpv_negative_5yr_survival_rate <- mean(clinical_focused_filtered_for_death$survived_5_years[clinical_focused_filtered_for_death$hpv_status == "negative"], na.rm = TRUE)
-
-# Print the survival rates
-cat("5-year survival rate for HPV positive group:", hpv_positive_5yr_survival_rate, "\n")
-cat("5-year survival rate for HPV negative group:", hpv_negative_5yr_survival_rate, "\n")
-
-
-
-
-
-# Calculate survival time and event status
+clinical_focused_filtered_for_death$days_to_last_followup <- as.numeric(clinical_focused_filtered_for_death$days_to_last_followup)
 clinical_focused_filtered_for_death$survival_time <- ifelse(
-  clinical_focused_filtered_for_death$vital_status == "alive",
-  five_years,
-  clinical_focused_filtered_for_death$days_to_death
+  clinical_focused_filtered_for_death$vital_status == "dead",
+  clinical_focused_filtered_for_death$days_to_death,
+  clinical_focused_filtered_for_death$days_to_last_followup
 )
-
 clinical_focused_filtered_for_death$event_observed <- clinical_focused_filtered_for_death$vital_status == "dead"
+clinical_focused_filtered_for_death <- clinical_focused_filtered_for_death %>%
+  filter(is.finite(survival_time), survival_time >= 0)
 
 # Create the survival object
 surv_object <- Surv(time = clinical_focused_filtered_for_death$survival_time, event = clinical_focused_filtered_for_death$event_observed)
 
 # Fit the Kaplan-Meier curve
 fit <- survfit(surv_object ~ hpv_status, data = clinical_focused_filtered_for_death)
+
+# Report Kaplan-Meier estimates at five years
+five_year_estimates <- summary(fit, times = 1825, extend = TRUE)
+print(data.frame(
+  hpv_status = sub("hpv_status=", "", five_year_estimates$strata),
+  survival_5_years = five_year_estimates$surv
+))
 
 km_plot <- ggsurvplot(
   fit,
@@ -246,7 +238,7 @@ km_plot <- ggsurvplot(
 km_plot
 
 # Save the plot
-ggsave("Kaplan_Meier_Survival_Curve_Truncated.png", plot = km_plot$plot, dpi = 300, width = 10, height = 6)
+ggsave("Kaplan_Meier_Survival_Curve_Corrected.png", plot = km_plot$plot, dpi = 300, width = 10, height = 6)
 
 # Source notebook line 3466
 # Load the image
@@ -256,4 +248,3 @@ img_scaled <- image_scale(img, "1024x1024")
 
 # Save the image
 image_write(img_scaled, path = "network1_scaled_300dpi.jpg", density = 300)
-

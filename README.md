@@ -66,6 +66,12 @@ Run all R stages:
 Rscript scripts/run_r_analysis.R data/local
 ```
 
+Generate the Kaplan-Meier survival figure directly:
+
+```bash
+Rscript scripts/plot_survival.R
+```
+
 To stop after a particular R stage, pass its filename after the data
 directory. All preceding stages run first:
 

@@ -1,0 +1,19 @@
+.DS_Store
+.RData
+.Rhistory
+.Rproj.user/
+__pycache__/
+*.py[cod]
+
+# Project data are kept outside Git.
+data/local/*
+data/raw/*
+data/derived/*
+!data/local/.gitkeep
+!data/raw/.gitkeep
+!data/derived/.gitkeep
+
+# Prevent accidental commits of analysis data files elsewhere.
+*.parquet
+methylation_level3_within_bioassay.txt
+mRNA_RSEM_normalized.txt

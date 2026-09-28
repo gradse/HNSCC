@@ -1,0 +1,8 @@
+fastparquet
+numpy
+opencv-python
+pandas
+Pillow
+pyarrow
+scikit-learn
+tqdm
